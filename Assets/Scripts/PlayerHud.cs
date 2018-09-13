@@ -38,9 +38,6 @@ public class PlayerHud : NetworkBehaviour
     bool handsDisplayed = false;
 
     [SyncVar]
-    bool clientDisplayedAgain = false;
-
-    [SyncVar]
     bool emperorChoice = false;
 
     [SyncVar]
@@ -651,8 +648,9 @@ public class PlayerHud : NetworkBehaviour
         for (int round = 1; round < 5; round++)
         {
             whoPlayedOne = 0; // 1 means server, 2 means client;
-
             roundText.text = "Round: " + round.ToString();
+            emperorPlayed = false;
+            slavePlayed = false;
 
             while (emperorPlayed == false && slavePlayed == false)
             {
@@ -761,6 +759,21 @@ public class PlayerHud : NetworkBehaviour
                     }
                 }
 
+                if (!isServer)
+                {
+                    if (hasAuthority)
+                    {
+                        if (yPlayZone.GetChild(0).name == "Emperor" || ePlayZone.GetChild(0).name == "Emperor")
+                            emperorPlayed = true;
+
+                        if (yPlayZone.GetChild(0).name == "Slave" || ePlayZone.GetChild(0).name == "Slave")
+                            slavePlayed = true;
+
+                        Debug.Log("Emperor Played: " + emperorPlayed);
+                        Debug.Log("Slave Played: " + slavePlayed);
+                    }
+                }
+
                 yield return new WaitForSeconds(2.5f);
 
                 if (emperorPlayed == false && slavePlayed == false)
@@ -780,29 +793,16 @@ public class PlayerHud : NetworkBehaviour
                     if (!hasAuthority)
                     {
                         if (isServer)
-                            CmdDestroyHands();
-                    }
-
-                    if (!hasAuthority)
-                    {
-                        if (isServer)
                         {
+                            CmdDestroyHands();
                             CmdChangeTurn();
+                            CmdDisplayHandsAgain();
                         }
                     }
-
-                    Debug.Log("After the destroy. Displaying hand for host...");
-
-                    if (!hasAuthority)
-                    {
-                        if (isServer)
-                            CmdDisplayHandsAgain();
-                    }
-
-                    yield return new WaitUntil(() => clientDisplayedAgain == true);
                 }
 
-                CmdResetBools();
+                if (!hasAuthority && isServer)
+                    CmdResetBools();
 
                 if (!hasAuthority)
                 {
@@ -1246,68 +1246,25 @@ public class PlayerHud : NetworkBehaviour
     }
 
     [ClientRpc]
-    void RpcTurnResult()
+    void RpcTurnResult(string cMessage, int hScore, int cScore, bool ePlayed, bool sPlayed)
     {
         if (!isServer)
         {
+            clientMessage = cMessage;
+            hostScore = hScore;
+            clientScore = cScore;
+            emperorPlayed = ePlayed;
+            slavePlayed = sPlayed;
+
             GameObject scoreObject = GameObject.Find("You").transform.GetChild(1).gameObject;
             Text scoreText = scoreObject.GetComponent<Text>();
             GameObject eScoreObject = GameObject.Find("Opponent").transform.GetChild(1).gameObject;
             Text eScoreText = eScoreObject.GetComponent<Text>();
 
-            if (yPlayZone.GetChild(0).name == "Citizen" && ePlayZone.GetChild(0).name == "Citizen")
-            {
-                clientMessage = "Your CITIZEN vs their CITIZEN. It's a DRAW.";
-            }
-
-            if (yPlayZone.GetChild(0).name == "Emperor" && ePlayZone.GetChild(0).name == "Citizen")
-            {
-                clientMessage = "Your EMPEROR vs their CITIZEN. You won this round.";
-                emperorPlayed = true;
-                clientScore++;
-            }
-
-            if (yPlayZone.GetChild(0).name == "Citizen" && ePlayZone.GetChild(0).name == "Emperor")
-            {
-                clientMessage = "Your CITIZEN vs their EMPEROR. You lost this round.";
-                emperorPlayed = true;
-                hostScore++;
-            }
-
-            if (yPlayZone.GetChild(0).name == "Slave" && ePlayZone.GetChild(0).name == "Citizen")
-            {
-                clientMessage = "Your SLAVE vs their CITIZEN. You lost this round.";
-                slavePlayed = true;
-                hostScore++;
-            }
-
-            if (yPlayZone.GetChild(0).name == "Citizen" && ePlayZone.GetChild(0).name == "Slave")
-            {
-                clientMessage = "Your CITIZEN vs their SLAVE. You won this round.";
-                slavePlayed = true;
-                clientScore++;
-            }
-
-            if (yPlayZone.GetChild(0).name == "Emperor" && ePlayZone.GetChild(0).name == "Slave")
-            {
-                clientMessage = "Your EMPEROR vs their SLAVE. You lost this round.";
-                emperorPlayed = true;
-                slavePlayed = true;
-                hostScore += 5;
-            }
-
-            if (yPlayZone.GetChild(0).name == "Slave" && ePlayZone.GetChild(0).name == "Emperor")
-            {
-                clientMessage = "Your SLAVE vs their EMPEROR. You won this round.";
-                emperorPlayed = true;
-                slavePlayed = true;
-                clientScore += 5;
-            }
-
             FlipPlayedCards();
             guidelines.text = clientMessage;
-            scoreText.text = "Score: " + hostScore;
-            eScoreText.text = "Score: " + clientScore;
+            scoreText.text = "Score: " + clientScore;
+            eScoreText.text = "Score: " + hostScore;
         }
     }
 
@@ -1322,11 +1279,13 @@ public class PlayerHud : NetworkBehaviour
         if (yPlayZone.GetChild(0).name == "Citizen" && ePlayZone.GetChild(0).name == "Citizen")
         {
             message = "Your CITIZEN vs their CITIZEN. It's a DRAW.";
+            clientMessage = "Your CITIZEN vs their CITIZEN. It's a DRAW.";
         }
 
         if (yPlayZone.GetChild(0).name == "Emperor" && ePlayZone.GetChild(0).name == "Citizen")
         {
             message = "Your EMPEROR vs their CITIZEN. You won this round.";
+            clientMessage = "Your CITIZEN vs their EMPEROR. You lost this round.";
             emperorPlayed = true;
             hostScore++;
         }
@@ -1334,6 +1293,7 @@ public class PlayerHud : NetworkBehaviour
         if (yPlayZone.GetChild(0).name == "Citizen" && ePlayZone.GetChild(0).name == "Emperor")
         {
             message = "Your CITIZEN vs their EMPEROR. You lost this round.";
+            clientMessage = "Your EMPEROR vs their CITIZEN. You won this round.";
             emperorPlayed = true;
             clientScore++;
         }
@@ -1341,6 +1301,7 @@ public class PlayerHud : NetworkBehaviour
         if (yPlayZone.GetChild(0).name == "Slave" && ePlayZone.GetChild(0).name == "Citizen")
         {
             message = "Your SLAVE vs their CITIZEN. You lost this round.";
+            clientMessage = "Your CITIZEN vs their SLAVE. You won this round.";
             slavePlayed = true;
             clientScore++;
         }
@@ -1348,6 +1309,7 @@ public class PlayerHud : NetworkBehaviour
         if (yPlayZone.GetChild(0).name == "Citizen" && ePlayZone.GetChild(0).name == "Slave")
         {
             message = "Your CITIZEN vs their SLAVE. You won this round.";
+            clientMessage = "Your SLAVE vs their CITIZEN. You lost this round.";
             slavePlayed = true;
             hostScore++;
         }
@@ -1355,6 +1317,7 @@ public class PlayerHud : NetworkBehaviour
         if (yPlayZone.GetChild(0).name == "Emperor" && ePlayZone.GetChild(0).name == "Slave")
         {
             message = "Your EMPEROR vs their SLAVE. You lost this round.";
+            clientMessage = "Your SLAVE vs their EMPEROR. You won this round.";
             emperorPlayed = true;
             slavePlayed = true;
             clientScore += 5;
@@ -1363,6 +1326,7 @@ public class PlayerHud : NetworkBehaviour
         if (yPlayZone.GetChild(0).name == "Slave" && ePlayZone.GetChild(0).name == "Emperor")
         {
             message = "Your SLAVE vs their EMPEROR. You won this round.";
+            clientMessage = "Your EMPEROR vs their SLAVE. You lost this round.";
             emperorPlayed = true;
             slavePlayed = true;
             hostScore += 5;
@@ -1372,7 +1336,8 @@ public class PlayerHud : NetworkBehaviour
         guidelines.text = message;
         scoreText.text = "Score: " + hostScore;
         eScoreText.text = "Score: " + clientScore;
-        RpcTurnResult();
+        RpcTurnResult(clientMessage, hostScore, clientScore, emperorPlayed, slavePlayed);
+        //TurnResultBools(emperorPlayed, slavePlayed);
     }
 
     [ClientRpc]
@@ -1458,18 +1423,18 @@ public class PlayerHud : NetworkBehaviour
     [ClientRpc]
     void RpcDisplayHandsAgain()
     {
-        if (!isServer && hasAuthority)
+        if (!isServer)
         {
             if (GameObject.Find("EmperorHand(Clone)") != null && GameObject.Find("SlaveHand(Clone)") != null)
             {
                 Debug.Log("Found the hands. Trying to display hand again for the Client");
 
-                GameObject empHand = GameObject.Find("EmperorHand(Clone)");
+                GameObject empHand = Instantiate(emperorHand);
                 empHand.transform.SetParent(gameCanvas);
                 empHand.transform.localScale = new Vector3(1, 1, 1);
                 RectTransform emperorRt = empHand.GetComponent<RectTransform>();
 
-                GameObject slaHand = GameObject.Find("SlaveHand(Clone)");
+                GameObject slaHand = Instantiate(slaveHand);
                 slaHand.transform.SetParent(gameCanvas);
                 slaHand.transform.localScale = new Vector3(1, 1, 1);
                 RectTransform slaveRt = slaHand.GetComponent<RectTransform>();
@@ -1493,7 +1458,6 @@ public class PlayerHud : NetworkBehaviour
                 }
 
                 guidelines.text = clientMessage;
-                //clientDisplayedAgain = true;
             }
 
             else
@@ -1505,13 +1469,13 @@ public class PlayerHud : NetworkBehaviour
     void CmdDisplayHandsAgain()
     {
         GameObject eHand = Instantiate(emperorHand);
-        NetworkServer.Spawn(eHand);
+        //NetworkServer.Spawn(eHand);
         eHand.transform.SetParent(gameCanvas);
         eHand.transform.localScale = new Vector3(1, 1, 1);
         RectTransform emperorRt = eHand.GetComponent<RectTransform>();
 
         GameObject sHand = Instantiate(slaveHand);
-        NetworkServer.Spawn(sHand);
+        //NetworkServer.Spawn(sHand);
         sHand.transform.SetParent(gameCanvas);
         sHand.transform.localScale = new Vector3(1, 1, 1);
         RectTransform slaveRt = sHand.GetComponent<RectTransform>();
@@ -1535,7 +1499,6 @@ public class PlayerHud : NetworkBehaviour
         }
 
         guidelines.text = message;
-
         RpcDisplayHandsAgain();
     }
 
@@ -1544,8 +1507,6 @@ public class PlayerHud : NetworkBehaviour
     {
         hostPlayedOne = false;
         clientPlayedOne = false;
-        emperorPlayed = false;
-        slavePlayed = false;
         syncForServer = false;
         syncForClient = false;
         whoPlayedOne = 0;
@@ -1558,8 +1519,6 @@ public class PlayerHud : NetworkBehaviour
     {
         hostPlayedOne = false;
         clientPlayedOne = false;
-        emperorPlayed = false;
-        slavePlayed = false;
         syncForServer = false;
         syncForClient = false;
         whoPlayedOne = 0;
