@@ -38,6 +38,9 @@ public class PlayerHud : NetworkBehaviour
     bool handsDisplayed = false;
 
     [SyncVar]
+    bool handsDisplayedAgain = false;
+
+    [SyncVar]
     bool emperorChoice = false;
 
     [SyncVar]
@@ -748,27 +751,30 @@ public class PlayerHud : NetworkBehaviour
                 if (emperorPlayed == false && slavePlayed == false)
                 {
                     if (!hasAuthority && isServer)
+                    {
                         CmdAfterADraw();
+                        CmdChangeTurn();
+                    }
                 }
 
                 else if (emperorPlayed == true || slavePlayed == true)
                 {
-                    if (!hasAuthority)
+                    if (!hasAuthority && isServer)
                     {
-                        if (isServer)
-                        {
-                            CmdDestroyHands();
-                            CmdChangeTurn();
-                            CmdDisplayHandsAgain();
-                        }
+                        CmdDestroyHands();
+                        CmdChangeTurn();
+                        CmdDisplayHandsAgain();
                     }
                 }
 
-                if (!hasAuthority && isServer)
+                if (handsDisplayedAgain && !isServer && hasAuthority)
                 {
-                    CmdResetBools();
-                    CmdChangeTurn();
+                    emperorPlayed = true;
+                    Debug.Log("EmperorPlayed has been manually set to: " + emperorPlayed);
                 }
+
+                if (!hasAuthority && isServer)
+                    CmdResetBools();
             }
         }
     }
@@ -1236,46 +1242,46 @@ public class PlayerHud : NetworkBehaviour
 
         if (yPlayZone.GetChild(0).name == "Citizen" && ePlayZone.GetChild(0).name == "Citizen")
         {
-            message = "Your CITIZEN vs their CITIZEN. It's a DRAW.";
-            clientMessage = "Your CITIZEN vs their CITIZEN. It's a DRAW.";
+            message = "It's a DRAW.";
+            clientMessage = "It's a DRAW.";
         }
 
         if (yPlayZone.GetChild(0).name == "Emperor" && ePlayZone.GetChild(0).name == "Citizen")
         {
-            message = "Your EMPEROR vs their CITIZEN. You won this round.";
-            clientMessage = "Your CITIZEN vs their EMPEROR. You lost this round.";
+            message = "You won this round.";
+            clientMessage = "You lost this round.";
             emperorPlayed = true;
             hostScore++;
         }
 
         if (yPlayZone.GetChild(0).name == "Citizen" && ePlayZone.GetChild(0).name == "Emperor")
         {
-            message = "Your CITIZEN vs their EMPEROR. You lost this round.";
-            clientMessage = "Your EMPEROR vs their CITIZEN. You won this round.";
+            message = "You lost this round.";
+            clientMessage = "You won this round.";
             emperorPlayed = true;
             clientScore++;
         }
 
         if (yPlayZone.GetChild(0).name == "Slave" && ePlayZone.GetChild(0).name == "Citizen")
         {
-            message = "Your SLAVE vs their CITIZEN. You lost this round.";
-            clientMessage = "Your CITIZEN vs their SLAVE. You won this round.";
+            message = "You lost this round.";
+            clientMessage = "You won this round.";
             slavePlayed = true;
             clientScore++;
         }
 
         if (yPlayZone.GetChild(0).name == "Citizen" && ePlayZone.GetChild(0).name == "Slave")
         {
-            message = "Your CITIZEN vs their SLAVE. You won this round.";
-            clientMessage = "Your SLAVE vs their CITIZEN. You lost this round.";
+            message = "You won this round.";
+            clientMessage = "You lost this round.";
             slavePlayed = true;
             hostScore++;
         }
 
         if (yPlayZone.GetChild(0).name == "Emperor" && ePlayZone.GetChild(0).name == "Slave")
         {
-            message = "Your EMPEROR vs their SLAVE. You lost this round.";
-            clientMessage = "Your SLAVE vs their EMPEROR. You won this round.";
+            message = "You lost this round.";
+            clientMessage = "You won this round.";
             emperorPlayed = true;
             slavePlayed = true;
             clientScore += 5;
@@ -1283,8 +1289,8 @@ public class PlayerHud : NetworkBehaviour
 
         if (yPlayZone.GetChild(0).name == "Slave" && ePlayZone.GetChild(0).name == "Emperor")
         {
-            message = "Your SLAVE vs their EMPEROR. You won this round.";
-            clientMessage = "Your EMPEROR vs their SLAVE. You lost this round.";
+            message = "You won this round.";
+            clientMessage = "You lost this round.";
             emperorPlayed = true;
             slavePlayed = true;
             hostScore += 5;
@@ -1416,6 +1422,7 @@ public class PlayerHud : NetworkBehaviour
                 }
 
                 guidelines.text = clientMessage;
+                handsDisplayedAgain = true;
             }
 
             else
@@ -1456,6 +1463,7 @@ public class PlayerHud : NetworkBehaviour
             message = "You are now the Emperor. It's your opponent's turn...";
         }
 
+        handsDisplayedAgain = true;
         guidelines.text = message;
         RpcDisplayHandsAgain();
     }
