@@ -227,14 +227,11 @@ public class PlayerHud : NetworkBehaviour
         Text guidelines = gameStatus.GetComponent<Text>();
         //guidelines.text = "Both Players have joined! Assigning players Heads and Tails";
         //yield return new WaitForSeconds (3);
-        if (!hasAuthority)
+        if (!hasAuthority && isServer)
         {
-            if (isServer)
-            {
-                CmdAssignHT();
-                CmdDecideOutcome();
-                CmdAnimateCoin(whichAnim);
-            }
+            CmdAssignHT();
+            CmdDecideOutcome();
+            CmdAnimateCoin(whichAnim);
         }
 
         yield return new WaitForSeconds(3.8f);
@@ -246,21 +243,15 @@ public class PlayerHud : NetworkBehaviour
 
         CmdDestroyCoin(whichAnim);
 
-        if (!hasAuthority)
-        {
-            if (isServer)
-                CmdPresentChoice();
-        }
+        if (!hasAuthority && isServer)
+            CmdPresentChoice();
 
         yield return new WaitUntil(() => handChoice == true);
 
         DestroyChoiceObj();
 
-        if (!hasAuthority)
-        {
-            if (isServer)
-                CmdDisplayHands();
-        }
+        if (!hasAuthority && isServer)
+            CmdDisplayHands();
 
         yield return new WaitUntil(() => handsDisplayed == true);
 
@@ -652,28 +643,25 @@ public class PlayerHud : NetworkBehaviour
             emperorPlayed = false;
             slavePlayed = false;
 
+            Debug.Log("NEW ROUND");
+
             while (emperorPlayed == false && slavePlayed == false)
             {
-                if (!hasAuthority)
-                {
-                    if (isServer)
-                        CmdGrantPlayAbility();
-                }
+                if (!hasAuthority && isServer)
+                    CmdGrantPlayAbility();
+
 
                 Debug.Log("Waiting for the first card to be played");
                 yield return new WaitUntil(() => (DidClientPlayOne() || DidHostPlayOne()) == true);
 
-                if (!hasAuthority)
+                if (!hasAuthority && isServer)
                 {
-                    if (isServer)
+                    if (DidClientPlayOne())
                     {
-                        if (DidClientPlayOne())
-                        {
-                            Debug.Log("After the waitUntil. The CLIENT played a card");
-                            CmdCheckPlayZones();
-                            CmdChangeTurn();
-                            whoPlayedOne = 2;
-                        }
+                        Debug.Log("After the waitUntil. The CLIENT played a card");
+                        CmdCheckPlayZones();
+                        CmdChangeTurn();
+                        whoPlayedOne = 2;
                     }
                 }
 
@@ -695,13 +683,8 @@ public class PlayerHud : NetworkBehaviour
 
                 Debug.Log("After the first Sync");
 
-                if (!hasAuthority)
-                {
-                    if (isServer)
-                    {
-                        CmdGrantPlayAbility();
-                    }
-                }
+                if (!hasAuthority && isServer)
+                    CmdGrantPlayAbility();
 
                 syncForServer = false;
                 syncForClient = false;
@@ -716,33 +699,27 @@ public class PlayerHud : NetworkBehaviour
 
                 yield return new WaitUntil(() => (DidClientPlayOne() && DidHostPlayOne()) == true);
 
-                if (!hasAuthority)
+                if (!hasAuthority && isServer)
                 {
                     if (whoPlayedOne == 1)
                     {
-                        if (isServer)
+                        if (DidClientPlayOne())
                         {
-                            if (DidClientPlayOne())
-                            {
-                                Debug.Log("After the waitUntil. The CLIENT played the second card");
-                                CmdCheckPlayZones();
-                            }
+                            Debug.Log("After the waitUntil. The CLIENT played the second card");
+                            CmdCheckPlayZones();
                         }
                     }
 
                 }
 
-                if (!hasAuthority)
+                if (!hasAuthority && isServer)
                 {
                     if (whoPlayedOne == 2)
                     {
-                        if (isServer)
+                        if (DidHostPlayOne())
                         {
-                            if (DidHostPlayOne())
-                            {
-                                Debug.Log("After the waitUntil. The HOST played the second card");
-                                CmdCheckPlayZones();
-                            }
+                            Debug.Log("After the waitUntil. The HOST played the second card");
+                            CmdCheckPlayZones();
                         }
                     }
                 }
@@ -751,13 +728,8 @@ public class PlayerHud : NetworkBehaviour
 
                 Debug.Log("After the second Sync");
 
-                if (!hasAuthority)
-                {
-                    if (isServer)
-                    {
-                        CmdTurnResult();
-                    }
-                }
+                if (!hasAuthority && isServer)
+                    CmdTurnResult();
 
                 if (!isServer)
                 {
@@ -768,24 +740,15 @@ public class PlayerHud : NetworkBehaviour
 
                         if (yPlayZone.GetChild(0).name == "Slave" || ePlayZone.GetChild(0).name == "Slave")
                             slavePlayed = true;
-
-                        Debug.Log("Emperor Played: " + emperorPlayed);
-                        Debug.Log("Slave Played: " + slavePlayed);
                     }
                 }
 
-                yield return new WaitForSeconds(2.5f);
+                yield return new WaitForSeconds(2);
 
                 if (emperorPlayed == false && slavePlayed == false)
                 {
-                    if (!hasAuthority)
-                    {
-                        if (isServer)
-                        {
-                            Debug.Log("Trying to put the Citizens in the discard pile");
-                            CmdAfterADraw();
-                        }
-                    }
+                    if (!hasAuthority && isServer)
+                        CmdAfterADraw();
                 }
 
                 else if (emperorPlayed == true || slavePlayed == true)
@@ -802,14 +765,9 @@ public class PlayerHud : NetworkBehaviour
                 }
 
                 if (!hasAuthority && isServer)
-                    CmdResetBools();
-
-                if (!hasAuthority)
                 {
-                    if (isServer)
-                    {
-                        CmdChangeTurn();
-                    }
+                    CmdResetBools();
+                    CmdChangeTurn();
                 }
             }
         }
