@@ -231,8 +231,8 @@ public class PlayerHud : NetworkBehaviour
     {
         yield return new WaitUntil(() => BothHaveNames() == true);
         Text guidelines = gameStatus.GetComponent<Text>();
-        //guidelines.text = "Both Players have joined! Assigning players Heads and Tails";
-        //yield return new WaitForSeconds (3);
+        guidelines.text = "Both Players have joined! Assigning players Heads and Tails...";
+        yield return new WaitForSeconds(3);
         if (!hasAuthority && isServer)
         {
             CmdAssignHT();
@@ -242,10 +242,8 @@ public class PlayerHud : NetworkBehaviour
 
         yield return new WaitForSeconds(3.8f);
 
-        if (!hasAuthority)
-        {
+        if (!hasAuthority && isServer)
             CmdMessageAfterAnim(whichAnim);
-        }
 
         CmdDestroyCoin(whichAnim);
 
@@ -329,38 +327,10 @@ public class PlayerHud : NetworkBehaviour
     }
 
     [ClientRpc]
-    void RpcMessageAfterAnim(bool headOrTail)
+    void RpcMessageAfterAnim(string cMess)
     {
         if (!isServer)
-        {
-            if (headOrTail)
-            {
-                if (p1Heads)
-                {
-                    clientMessage = "Your opponent has won the coin toss. They are deciding which hand they want...";
-                }
-
-                if (p2Heads)
-                {
-                    clientMessage = "You have won the coin toss. You may now decide which hand you want...";
-                }
-            }
-
-            if (!headOrTail)
-            {
-                if (p1Heads)
-                {
-                    clientMessage = "Your opponent has won the coin toss. They are deciding which hand they want...";
-                }
-
-                if (p2Heads)
-                {
-                    clientMessage = "You have won the coin toss. You may now decide which hand you want...";
-                }
-            }
-
-            guidelines.text = clientMessage;
-        }
+            guidelines.text = cMess;
     }
 
     [Command]
@@ -371,12 +341,14 @@ public class PlayerHud : NetworkBehaviour
             if (p1Heads)
             {
                 message = "You have won the coin toss. You may now decide which hand you want...";
+                clientMessage = "Your opponent has won the coin toss. They are deciding which hand they want...";
                 serverWin = true;
             }
 
             if (p2Heads)
             {
                 message = "Your opponent has won the coin toss. They are deciding which hand they want...";
+                clientMessage = "You have won the coin toss. You may now decide which hand you want...";
                 clientWin = true;
             }
         }
@@ -386,18 +358,20 @@ public class PlayerHud : NetworkBehaviour
             if (p1Heads)
             {
                 message = "Your opponent has won the coin toss. They are deciding which hand they want...";
+                clientMessage = "You have won the coin toss. You may now decide which hand you want...";
                 clientWin = true;
             }
 
             if (p2Heads)
             {
                 message = "You have won the coin toss. You may now decide which hand you want...";
+                clientMessage = "Your opponent has won the coin toss. They are deciding which hand they want...";
                 serverWin = true;
             }
         }
 
         guidelines.text = message;
-        RpcMessageAfterAnim(headsOrTails);
+        RpcMessageAfterAnim(clientMessage);
     }
 
     [Command]
@@ -423,18 +397,13 @@ public class PlayerHud : NetworkBehaviour
 
         if (clientWin)
             RpcPresentChoice();
-        //update appropriate variable in gcScript to set order of hand rotations.
     }
 
     [ClientRpc]
     void RpcPresentChoice()
     {
         if (!isServer)
-        {
-            //if (clientWin)
             PresentChoice();
-            //update appropriate variable in gcScript to set order of hand rotations.
-        }
     }
 
     void PresentChoice()
