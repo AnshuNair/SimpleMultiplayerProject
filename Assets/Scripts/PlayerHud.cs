@@ -71,6 +71,9 @@ public class PlayerHud : NetworkBehaviour
     bool slavePlayed = false;
 
     [SyncVar]
+    bool resetComplete = false;
+
+    [SyncVar]
     int hostCard; // 1 = Citizen, 2 = Emperor, 3 = Slave
 
     [SyncVar]
@@ -645,6 +648,7 @@ public class PlayerHud : NetworkBehaviour
             roundText.text = "Round: " + round.ToString();
             emperorPlayed = false;
             slavePlayed = false;
+            resetComplete = false;
 
             Debug.Log("NEW ROUND");
 
@@ -762,7 +766,6 @@ public class PlayerHud : NetworkBehaviour
                     if (!hasAuthority && isServer)
                     {
                         CmdDestroyHands();
-                        CmdChangeTurn();
                         CmdDisplayHandsAgain();
                     }
                 }
@@ -775,7 +778,15 @@ public class PlayerHud : NetworkBehaviour
 
                 if (!hasAuthority && isServer)
                     CmdResetBools();
+
+                yield return new WaitUntil(() => (resetComplete) == true);
             }
+        }
+
+        if (!hasAuthority && isServer)
+        {
+            CmdDestroyHands();
+            CmdDeclareWinner();
         }
     }
 
@@ -809,32 +820,85 @@ public class PlayerHud : NetworkBehaviour
     {
         if (!isServer)
         {
+            if (GameObject.Find("You").transform.childCount == 3 && GameObject.Find("Opponent").transform.childCount == 3)
+            {
+                GameObject yourHand = GameObject.Find("You").transform.GetChild(2).gameObject;
+                GameObject enemyHand = GameObject.Find("Opponent").transform.GetChild(2).gameObject;
+
+                Debug.Log("In RpcGrantPlayAbility. Host Turn: " + hostTurn);
+
+                if (hostTurn)
+                {
+                    for (int i = 0; i < enemyHand.transform.childCount; i++)
+                    {
+                        enemyHand.transform.GetChild(i).GetChild(0).gameObject.SetActive(true);
+                    }
+
+                    for (int i = 0; i < yourHand.transform.childCount; i++)
+                    {
+                        if (yourHand.transform.GetChild(i).GetComponent<MoveCard>() != null)
+                        {
+                            MoveCard moveCard = yourHand.transform.GetChild(i).GetComponent<MoveCard>();
+                            Destroy(moveCard);
+                        }
+
+                        yourHand.transform.GetChild(i).GetChild(0).gameObject.SetActive(false);
+                    }
+
+                    clientMessage = "It's your opponent's turn. They are playing a card...";
+                }
+
+                else if (clientTurn)
+                {
+                    for (int i = 0; i < enemyHand.transform.childCount; i++)
+                    {
+                        if (enemyHand.transform.GetChild(i).GetComponent<MoveCard>() != null)
+                        {
+                            MoveCard moveCard = enemyHand.transform.GetChild(i).GetComponent<MoveCard>();
+                            Destroy(moveCard);
+                        }
+
+                        enemyHand.transform.GetChild(i).GetChild(0).gameObject.SetActive(false);
+                    }
+
+                    for (int i = 0; i < yourHand.transform.childCount; i++)
+                    {
+                        if (yourHand.transform.GetChild(i).GetComponent<MoveCard>() == null)
+                        {
+                            yourHand.transform.GetChild(i).gameObject.AddComponent<MoveCard>();
+                        }
+
+                        yourHand.transform.GetChild(i).GetChild(0).gameObject.SetActive(true);
+                    }
+
+                    clientMessage = "It's your turn. Please play a card...";
+                }
+
+                guidelines.text = clientMessage;
+            }
+        }
+    }
+
+    [Command]
+    void CmdGrantPlayAbility()
+    {
+        if (GameObject.Find("You").transform.childCount == 3 && GameObject.Find("Opponent").transform.childCount == 3)
+        {
             GameObject yourHand = GameObject.Find("You").transform.GetChild(2).gameObject;
             GameObject enemyHand = GameObject.Find("Opponent").transform.GetChild(2).gameObject;
 
             if (hostTurn)
             {
-                for (int i = 0; i < enemyHand.transform.childCount; i++)
-                {
-                    enemyHand.transform.GetChild(i).GetChild(0).gameObject.SetActive(true);
-                }
-
                 for (int i = 0; i < yourHand.transform.childCount; i++)
                 {
-                    if (yourHand.transform.GetChild(i).GetComponent<MoveCard>() != null)
+                    if (yourHand.transform.GetChild(i).GetComponent<MoveCard>() == null)
                     {
-                        MoveCard moveCard = yourHand.transform.GetChild(i).GetComponent<MoveCard>();
-                        Destroy(moveCard);
+                        yourHand.transform.GetChild(i).gameObject.AddComponent<MoveCard>();
                     }
 
-                    yourHand.transform.GetChild(i).GetChild(0).gameObject.SetActive(false);
+                    yourHand.transform.GetChild(i).GetChild(0).gameObject.SetActive(true);
                 }
 
-                clientMessage = "It's your opponent's turn. They are playing a card...";
-            }
-
-            else if (clientTurn)
-            {
                 for (int i = 0; i < enemyHand.transform.childCount; i++)
                 {
                     if (enemyHand.transform.GetChild(i).GetComponent<MoveCard>() != null)
@@ -846,78 +910,33 @@ public class PlayerHud : NetworkBehaviour
                     enemyHand.transform.GetChild(i).GetChild(0).gameObject.SetActive(false);
                 }
 
+                message = "It's your turn. Please play a card...";
+            }
+
+            else if (clientTurn)
+            {
                 for (int i = 0; i < yourHand.transform.childCount; i++)
                 {
-                    if (yourHand.transform.GetChild(i).GetComponent<MoveCard>() == null)
+                    if (yourHand.transform.GetChild(i).GetComponent<MoveCard>() != null)
                     {
-                        yourHand.transform.GetChild(i).gameObject.AddComponent<MoveCard>();
+                        MoveCard moveCard = yourHand.transform.GetChild(i).GetComponent<MoveCard>();
+                        Destroy(moveCard);
                     }
 
-                    yourHand.transform.GetChild(i).GetChild(0).gameObject.SetActive(true);
+                    yourHand.transform.GetChild(i).GetChild(0).gameObject.SetActive(false);
                 }
 
-                clientMessage = "It's your turn. Please play a card...";
-            }
-
-            guidelines.text = clientMessage;
-        }
-    }
-
-    [Command]
-    void CmdGrantPlayAbility()
-    {
-        GameObject yourHand = GameObject.Find("You").transform.GetChild(2).gameObject;
-        GameObject enemyHand = GameObject.Find("Opponent").transform.GetChild(2).gameObject;
-
-        if (hostTurn)
-        {
-            for (int i = 0; i < yourHand.transform.childCount; i++)
-            {
-                if (yourHand.transform.GetChild(i).GetComponent<MoveCard>() == null)
+                for (int i = 0; i < enemyHand.transform.childCount; i++)
                 {
-                    yourHand.transform.GetChild(i).gameObject.AddComponent<MoveCard>();
+                    enemyHand.transform.GetChild(i).GetChild(0).gameObject.SetActive(true);
                 }
 
-                yourHand.transform.GetChild(i).GetChild(0).gameObject.SetActive(true);
+                message = "It's your opponent's turn. They are playing a card...";
             }
 
-            for (int i = 0; i < enemyHand.transform.childCount; i++)
-            {
-                if (enemyHand.transform.GetChild(i).GetComponent<MoveCard>() != null)
-                {
-                    MoveCard moveCard = enemyHand.transform.GetChild(i).GetComponent<MoveCard>();
-                    Destroy(moveCard);
-                }
-
-                enemyHand.transform.GetChild(i).GetChild(0).gameObject.SetActive(false);
-            }
-
-            message = "It's your turn. Please play a card...";
+            guidelines.text = message;
+            RpcGrantPlayAbility();
         }
-
-        else if (clientTurn)
-        {
-            for (int i = 0; i < yourHand.transform.childCount; i++)
-            {
-                if (yourHand.transform.GetChild(i).GetComponent<MoveCard>() != null)
-                {
-                    MoveCard moveCard = yourHand.transform.GetChild(i).GetComponent<MoveCard>();
-                    Destroy(moveCard);
-                }
-
-                yourHand.transform.GetChild(i).GetChild(0).gameObject.SetActive(false);
-            }
-
-            for (int i = 0; i < enemyHand.transform.childCount; i++)
-            {
-                enemyHand.transform.GetChild(i).GetChild(0).gameObject.SetActive(true);
-            }
-
-            message = "It's your opponent's turn. They are playing a card...";
-        }
-
-        guidelines.text = message;
-        RpcGrantPlayAbility();
     }
 
     [ClientRpc]
@@ -1346,6 +1365,18 @@ public class PlayerHud : NetworkBehaviour
                 GameObject discarded = eDiscardZone.GetChild(i).gameObject;
                 Destroy(discarded);
             }
+
+            if (GameObject.Find("EmperorHand(Clone)") != null)
+            {
+                GameObject eHand = GameObject.Find("EmperorHand(Clone)");
+                Destroy(eHand);
+            }
+
+            if (GameObject.Find("SlaveHand(Clone)") != null)
+            {
+                GameObject sHand = GameObject.Find("SlaveHand(Clone)");
+                Destroy(sHand);
+            }
         }
     }
 
@@ -1364,10 +1395,17 @@ public class PlayerHud : NetworkBehaviour
             Destroy(playedCard);
         }
 
-        GameObject eHand = GameObject.Find("EmperorHand(Clone)");
-        Destroy(eHand);
-        GameObject sHand = GameObject.Find("SlaveHand(Clone)");
-        Destroy(sHand);
+        if (GameObject.Find("EmperorHand(Clone)") != null)
+        {
+            GameObject eHand = GameObject.Find("EmperorHand(Clone)");
+            Destroy(eHand);
+        }
+
+        if (GameObject.Find("SlaveHand(Clone)") != null)
+        {
+            GameObject sHand = GameObject.Find("SlaveHand(Clone)");
+            Destroy(sHand);
+        }
 
         for (int i = 0; i < yDiscardZone.childCount; i++)
         {
@@ -1423,6 +1461,8 @@ public class PlayerHud : NetworkBehaviour
 
                 guidelines.text = clientMessage;
                 handsDisplayedAgain = true;
+                Debug.Log("Called CmdGrantPlayAbility to make sure");
+                CmdGrantPlayAbility();
             }
 
             else
@@ -1478,6 +1518,9 @@ public class PlayerHud : NetworkBehaviour
         whoPlayedOne = 0;
         hostCard = 0;
         clientCard = 0;
+        handsDisplayedAgain = false;
+
+        resetComplete = true;
     }
 
     [Command]
@@ -1490,7 +1533,55 @@ public class PlayerHud : NetworkBehaviour
         whoPlayedOne = 0;
         hostCard = 0;
         clientCard = 0;
+        handsDisplayedAgain = false;
+
+        resetComplete = true;
 
         RpcResetBools();
+    }
+
+    [ClientRpc]
+    void RpcDeclareWinner(string cMess)
+    {
+        if (!isServer)
+        {
+            guidelines.text = cMess;
+            roundText.text = cMess;
+        }
+    }
+
+    [Command]
+    void CmdDeclareWinner()
+    {
+        Debug.Log("HostScore is: " + hostScore);
+        Debug.Log("ClientScore is: " + clientScore);
+
+        if (hostScore > clientScore)
+        {
+            Debug.Log("Host has won");
+
+            message = "Game Over. You Win!";
+            clientMessage = "Game Over. You Lose!";
+        }
+
+        else if (clientScore > hostScore)
+        {
+            Debug.Log("Client has won");
+
+            message = "Game Over.You Lose!";
+            clientMessage = "Game Over. You Win!";
+        }
+
+        else if (clientScore == hostScore)
+        {
+            Debug.Log("DRAW");
+
+            message = "Game Over. It's a Draw...";
+            clientMessage = "Game Over. It's a Draw...";
+        }
+
+        guidelines.text = message;
+        roundText.text = message;
+        RpcDeclareWinner(clientMessage);
     }
 }
