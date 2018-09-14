@@ -5,4 +5,4 @@ A small project intended for learning how to use UNET and NetworkBehaviour in Un
 
 ![alt text](https://pre00.deviantart.net/2e1f/th/pre/f/2015/145/1/1/_kaiji__e_card___full_set_by_greysonx-d8ps79m.png)
 
-![alt text](https://raw.githubusercontent.com/username/projectname/master/SimpleMultiplayerProject/ECardScreenshot.png .png)
+![alt text](https://raw.githubusercontent.com/AnshuNair/SimpleMultiplayerProject/master/SimpleMultiplayerProject/ECardScreenshot.png .png)
