@@ -12,13 +12,15 @@ To play the game:
 
 5. If it is your turn, simply click on a card to play it face-down in front of you. Your opponent should do the same. The game will then determine the result of that round. 
 
-6. Citizen vs Citizen : Draw. The round continues.
-   Emperor vs Citizen : Emperor wins and that round ends. 1 Point is awarded to the player with the Emperor.
-   Slave vs Citizen : Citizen wins and that round ends. 1 Point is awarded to the player with the Emperor.
-   Slave vs Emperor : Slave wins and that round ends. 5 Points are awarded to the player with the Slave.
+6. Citizen vs Citizen : Draw. The round continues.  
+   Emperor vs Citizen : Emperor wins and that round ends. 1 Point is awarded to the player with the Emperor.  
+   Slave vs Citizen : Citizen wins and that round ends. 1 Point is awarded to the player with the Emperor.  
+   Slave vs Emperor : Slave wins and that round ends. 5 Points are awarded to the player with the Slave.  
    
-7. A winner is determined after 4 rounds. The player with the higher score wins.
-
+7. A winner is determined after 4 rounds. The player with the higher score wins.  
+  
+    
+    
 ![alt text](https://tokyogazette.files.wordpress.com/2012/02/kaiji-background.png)
 
 ![alt text](https://pre00.deviantart.net/2e1f/th/pre/f/2015/145/1/1/_kaiji__e_card___full_set_by_greysonx-d8ps79m.png)
