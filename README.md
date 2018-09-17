@@ -2,7 +2,7 @@ To play the game:
 
 1. Download/Clone this repo. You only need the ECardBuild.zip file to play it.
 
-2. Unzip the files to a new folder and double-click the build.exe file to run it. Launch another instance of the game in the samy way. When launching the games, if you're only using one monitor like myself, I'd recommend lowering the resolution and checking windowed mode in order to switch between the games more easily. There is no AI/Single Player mode. This is a multiplayer game.
+2. Unzip the files from ECardBuild.zip to a new folder and double-click the build.exe file to run it. Launch another instance of the game in the samy way. When launching the games, if you're only using one monitor like myself, I'd recommend lowering the resolution and checking windowed mode in order to switch between the games more easily. There is no AI/Single Player mode. This is a multiplayer game.
 
 3. Once you have both games open, click the Lan Host(H) button on one of the games to host a game. You may enter a player name for the host. In the other game, Click on the Lan Client(C) button.
 
